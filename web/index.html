@@ -1,1 +1,100 @@
-<!doctype html><title>t</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rust in the Browser</title>
+<script src="coi.js"></script>
+<link rel="stylesheet" href="vendor/xterm.css">
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #14161a;
+    --border: #2a2e36;
+    --text: #d8dee9;
+    --muted: #8a93a3;
+    --accent: #e8743b;
+    --accent-text: #1a0f08;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 600; }
+  h1 span { color: var(--accent); }
+  button, select {
+    font: inherit;
+    color: var(--text);
+    background: #1d2027;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+  button { cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #run { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+  #status { color: var(--muted); margin-left: auto; font-size: 13px; }
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  #editor {
+    resize: none;
+    border: 0;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    padding: 12px 16px;
+    font: 13.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    tab-size: 4;
+    outline: none;
+    white-space: pre;
+    overflow: auto;
+  }
+  #terminal { background: var(--panel); padding: 8px 0 8px 12px; min-height: 0; overflow: hidden; }
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+    #editor { border-right: 0; border-bottom: 1px solid var(--border); }
+    #status { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>rustc</span> → wasm, in the browser</h1>
+  <button id="run" disabled title="Ctrl+Enter">▶ Run</button>
+  <button id="stop" disabled>■ Stop</button>
+  <label>opt-level
+    <select id="opt">
+      <option>0</option><option>1</option><option>2</option><option>3</option><option>s</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="raw"> raw input</label>
+  <select id="example"><option value="">Load example…</option></select>
+  <span id="status">Loading…</span>
+</header>
+<main>
+  <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Rust source"></textarea>
+  <div id="terminal"></div>
+</main>
+<script src="vendor/xterm.js"></script>
+<script src="vendor/addon-fit.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
