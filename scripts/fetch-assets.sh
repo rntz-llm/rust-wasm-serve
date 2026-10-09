@@ -20,12 +20,14 @@ fetch() {
     mv -f "$CACHE/$2.part" "$CACHE/$2"
   fi
 }
-fetch "$RUST_WASM/rustc_opt.wasm.tar.gz" rustc_opt.wasm.tar.gz
+# The panic=unwind build of rustc exits cleanly (code 1) on compile errors; the
+# panic=abort build traps instead. It needs wasm exception handling.
+fetch "$RUST_WASM/rustc_unwind_opt.wasm.tar.gz" rustc_unwind_opt.wasm.tar.gz
 fetch "$RUST_WASM/$TARGET.tar.gz" "$TARGET.tar.gz"
 fetch "$WASI_SDK" wasi-sysroot-24.0.tar.gz
 
 # rustc.wasm, gzipped (decompressed in the browser with DecompressionStream).
-tar -xzf "$CACHE/rustc_opt.wasm.tar.gz" -O rustc_opt.wasm | gzip -6 > "$OUT/rustc.wasm.gz"
+tar -xzf "$CACHE/rustc_unwind_opt.wasm.tar.gz" -O rustc_unwind_opt.wasm | gzip -6 > "$OUT/rustc.wasm.gz"
 
 # Sysroot: keep only what `std` programs need, laid out as /sysroot/lib/rustlib/<target>/lib.
 STAGE="$CACHE/sysroot-stage"
