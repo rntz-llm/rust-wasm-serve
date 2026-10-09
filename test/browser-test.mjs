@@ -1,6 +1,7 @@
 // End-to-end test in headless Chromium: loads the page from serve.py, compiles
 // examples with rustc.wasm, and interacts with them through the terminal.
-// Usage: node test/browser-test.mjs   (needs `playwright` and scripts/fetch-assets.sh)
+// Usage: node test/browser-test.mjs [url]   (needs `playwright`; without a url it
+// serves web/ locally with serve.py, which needs scripts/fetch-assets.sh)
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,9 +16,14 @@ try {
 }
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const port = 8000 + Math.floor(Math.random() * 1000);
-const server = spawn("python3", [path.join(root, "serve.py"), String(port)], { stdio: "ignore" });
-await new Promise((r) => setTimeout(r, 500));
+let url = process.argv[2];
+let server = null;
+if (!url) {
+  const port = 8000 + Math.floor(Math.random() * 1000);
+  server = spawn("python3", [path.join(root, "serve.py"), String(port)], { stdio: "ignore" });
+  await new Promise((r) => setTimeout(r, 500));
+  url = `http://localhost:${port}/`;
+}
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -54,8 +60,10 @@ async function check(name, fn) {
 }
 
 try {
-  await page.goto(`http://localhost:${port}/`);
+  await page.goto(url);
   await check("toolchain loads", async () => {
+    // On static hosts, coi.js reloads the page once to become isolated.
+    await page.waitForFunction(() => crossOriginIsolated, null, { timeout: 30000 }).catch(() => {});
     if (!(await page.evaluate(() => crossOriginIsolated))) throw new Error("not cross-origin isolated");
     await waitForTerm(/Ready in/);
   });
@@ -117,6 +125,6 @@ try {
 } finally {
   await page.screenshot({ path: path.join(root, "test/screenshot.png") });
   await browser.close();
-  server.kill();
+  server?.kill();
 }
 process.exit(failed ? 1 : 0);
