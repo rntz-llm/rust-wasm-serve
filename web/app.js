@@ -100,6 +100,53 @@ async function fetchGunzip(url, label) {
   return new Uint8Array(await new Response(body).arrayBuffer());
 }
 
+// Decompressed assets are kept in Cache Storage, keyed by the content hashes in
+// assets/manifest.json, so repeat visits skip both the download and the gunzip.
+const ASSET_CACHE = "rust-wasm-serve-assets";
+
+async function loadManifest() {
+  try {
+    const res = await fetch("assets/manifest.json", { cache: "no-cache" });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function openAssetCache() {
+  try {
+    return await caches.open(ASSET_CACHE);
+  } catch {
+    return null;
+  }
+}
+
+async function loadAsset(name, label, manifest, cache) {
+  const hash = manifest?.[name];
+  const key = hash && `assets/decompressed/${name}?v=${hash}`;
+  if (cache && key) {
+    try {
+      const hit = await cache.match(key);
+      if (hit) return { bytes: new Uint8Array(await hit.arrayBuffer()), cached: true };
+    } catch {}
+  }
+  const bytes = await fetchGunzip(`assets/${name}`, label);
+  if (cache && key) storeAsset(cache, name, key, bytes);
+  return { bytes, cached: false };
+}
+
+// Replaces any older cached version of `name`. Runs in the background.
+async function storeAsset(cache, name, key, bytes) {
+  try {
+    for (const req of await cache.keys()) {
+      if (new URL(req.url).pathname.endsWith(`/decompressed/${name}`)) await cache.delete(req);
+    }
+    await cache.put(key, new Response(bytes));
+  } catch (e) {
+    console.warn(`could not cache ${name}`, e);
+  }
+}
+
 function createWorker() {
   const w = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
   const handle = { postMessage: (m) => w.postMessage(m), terminate: () => w.terminate(), onmessage: null };
@@ -122,22 +169,26 @@ async function boot() {
   say(`${BOLD}rustc → wasm, in your browser${RESET}\r\n`);
   say(`${DIM}Loading the Rust toolchain (rustc + LLVM + lld compiled to WebAssembly)…${RESET}\r\n`);
   const t0 = performance.now();
+  let cachedNote = "";
   try {
-    const [sysroot, rustcBytes] = await Promise.all([
-      fetchGunzip("assets/sysroot.tar.gz", "sysroot"),
-      fetchGunzip("assets/rustc.wasm.gz", "rustc"),
+    const [manifest, cache] = await Promise.all([loadManifest(), openAssetCache()]);
+    const [sysroot, rustcAsset] = await Promise.all([
+      loadAsset("sysroot.tar.gz", "sysroot", manifest, cache),
+      loadAsset("rustc.wasm.gz", "rustc", manifest, cache),
     ]);
     setStatus("Compiling rustc.wasm…");
-    kernel.vfs.extractTar(sysroot, "/sysroot");
+    const compiling = loadProgram(rustcAsset.bytes);
+    kernel.vfs.extractTar(sysroot.bytes, "/sysroot");
     kernel.vfs.mkdirp("/tmp");
     kernel.vfs.mkdirp("/work");
-    rustc = await loadProgram(rustcBytes);
+    rustc = await compiling;
+    cachedNote = sysroot.cached && rustcAsset.cached ? " (from cache)" : "";
   } catch (e) {
     say(`${RED}Failed to load toolchain:${RESET} ${e.message}\r\n`);
     setStatus("Failed to load toolchain");
     return;
   }
-  say(`${DIM}Ready in ${((performance.now() - t0) / 1000).toFixed(1)}s. Press Run (Ctrl+Enter).${RESET}\r\n`);
+  say(`${DIM}Ready in ${((performance.now() - t0) / 1000).toFixed(1)}s${cachedNote}. Press Run (Ctrl+Enter).${RESET}\r\n`);
   setStatus("Ready");
   runBtn.disabled = false;
 }

@@ -153,7 +153,8 @@ export class VFS {
       }
       const full = dest.replace(/\/$/, "") + "/" + name.replace(/^\.?\//, "");
       if (type === "5") this.mkdirp(full);
-      else if (type === "0" || type === "\0") this.writeFile(full, bytes.slice(body, body + size));
+      // A view, not a copy: the file only reallocates if it grows.
+      else if (type === "0" || type === "\0") this.writeFile(full, bytes.subarray(body, body + size));
     }
   }
 }

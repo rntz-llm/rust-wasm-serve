@@ -27,7 +27,7 @@ fetch "$RUST_WASM/$TARGET.tar.gz" "$TARGET.tar.gz"
 fetch "$WASI_SDK" wasi-sysroot-24.0.tar.gz
 
 # rustc.wasm, gzipped (decompressed in the browser with DecompressionStream).
-tar -xzf "$CACHE/rustc_unwind_opt.wasm.tar.gz" -O rustc_unwind_opt.wasm | gzip -6 > "$OUT/rustc.wasm.gz"
+tar -xzf "$CACHE/rustc_unwind_opt.wasm.tar.gz" -O rustc_unwind_opt.wasm | gzip -6 -n > "$OUT/rustc.wasm.gz"
 
 # Sysroot: keep only what `std` programs need, laid out as /sysroot/lib/rustlib/<target>/lib.
 STAGE="$CACHE/sysroot-stage"
@@ -40,6 +40,11 @@ rm -f "$LIB"/libtest-*.rlib "$LIB"/libgetopts-*.rlib "$LIB"/libproc_macro-*.rlib
       "$LIB"/libpanic_unwind-*.rlib
 tar -xzf "$CACHE/wasi-sysroot-24.0.tar.gz" -O "wasi-sysroot-24.0/lib/$TARGET/libwasi-emulated-mman.a" \
     > "$LIB/self-contained/libwasi-emulated-mman.a"
-tar -C "$STAGE" --owner=0 --group=0 -cf - lib | gzip -6 > "$OUT/sysroot.tar.gz"
+tar -C "$STAGE" --owner=0 --group=0 --mtime=@0 --sort=name -cf - lib | gzip -6 -n > "$OUT/sysroot.tar.gz"
+
+# Content hashes, so the page can cache the decompressed assets and notice updates.
+cd "$OUT"
+printf '{\n  "rustc.wasm.gz": "%s",\n  "sysroot.tar.gz": "%s"\n}\n' \
+  "$(sha256sum rustc.wasm.gz | cut -c1-16)" "$(sha256sum sysroot.tar.gz | cut -c1-16)" > manifest.json
 
 ls -la "$OUT"
