@@ -11,6 +11,11 @@ Nothing runs server-side; the server only hosts static files.
 python3 serve.py            # http://localhost:8000
 ```
 
+Pushes to `main` deploy `web/` to GitHub Pages via `.github/workflows/pages.yml`,
+which runs `fetch-assets.sh` in CI so the binaries never enter git. Pages can't
+set COOP/COEP headers, so the deployed site relies on the service-worker fallback
+(`coi.js`); the first visit reloads once.
+
 ## Feasibility
 
 It works, and it's reasonably fast. Measured in headless Chromium on a 4-core
