@@ -143,8 +143,8 @@ The browser test covers:
   `std` links against it, but the release doesn't ship it.
 - `web/vendor/` contains xterm.js 5.5.0 and its fit addon (MIT, see
   `web/vendor/xterm-LICENSE`), and a bundle of [CodeMirror 6](https://codemirror.net/)
-  with its Rust language mode and One Dark theme (MIT; licence comments are at
-  the end of `web/vendor/codemirror.js`).
+  with its Rust language mode and One Dark theme (MIT; licences of all bundled
+  packages are in `web/vendor/codemirror-LICENSES.txt`).
 - Prior art: [bjorn3/browser_wasi_shim](https://github.com/bjorn3/browser_wasi_shim)
   and [oligamiq/rubrc](https://github.com/oligamiq/rubrc). rubrc is a much more
   complete environment, with cargo and rust-analyzer.

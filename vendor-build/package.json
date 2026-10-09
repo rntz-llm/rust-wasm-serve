@@ -3,7 +3,7 @@
   "private": true,
   "description": "Builds web/vendor/codemirror.js. Run: npm ci && npm run build",
   "scripts": {
-    "build": "esbuild codemirror-entry.js --bundle --format=esm --minify --legal-comments=eof --outfile=../web/vendor/codemirror.js"
+    "build": "esbuild codemirror-entry.js --bundle --format=esm --minify --outfile=../web/vendor/codemirror.js && node collect-licenses.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
