@@ -55,17 +55,11 @@
     grid-template-columns: 1fr 1fr;
   }
   #editor {
-    resize: none;
-    border: 0;
     border-right: 1px solid var(--border);
     background: var(--panel);
-    color: var(--text);
-    padding: 12px 16px;
-    font: 13.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    tab-size: 4;
-    outline: none;
-    white-space: pre;
-    overflow: auto;
+    font-size: 13.5px;
+    min-height: 0;
+    min-width: 0;
   }
   #terminal { background: var(--panel); padding: 8px 0 8px 12px; min-height: 0; overflow: hidden; }
   @media (max-width: 800px) {
@@ -90,7 +84,7 @@
   <span id="status">Loading…</span>
 </header>
 <main>
-  <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Rust source"></textarea>
+  <div id="editor" aria-label="Rust source"></div>
   <div id="terminal"></div>
 </main>
 <script src="vendor/xterm.js"></script>

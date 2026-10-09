@@ -1,9 +1,11 @@
 import { InputStream, Kernel, loadProgram } from "./kernel.js";
 import { Tty } from "./tty.js";
 import { examples } from "./examples.js";
+import {
+  basicSetup, EditorState, EditorView, indentUnit, indentWithTab, keymap, oneDark, Prec, rust,
+} from "./vendor/codemirror.js";
 
 const $ = (id) => document.getElementById(id);
-const editor = $("editor");
 const runBtn = $("run");
 const stopBtn = $("stop");
 const statusEl = $("status");
@@ -39,28 +41,42 @@ function store(key, value) {
   try { localStorage.setItem(key, value); } catch {}
 }
 
+const editor = new EditorView({
+  parent: $("editor"),
+  state: EditorState.create({
+    doc: stored(STORAGE_KEY) ?? examples["Hello, stdin"],
+    extensions: [
+      basicSetup,
+      rust(),
+      oneDark,
+      EditorView.theme({
+        "&": { height: "100%" },
+        ".cm-scroller": { fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace', lineHeight: "1.5" },
+      }, { dark: true }),
+      indentUnit.of("    "),
+      Prec.highest(keymap.of([{ key: "Mod-Enter", run: () => (run(), true) }])),
+      keymap.of([indentWithTab]),
+      EditorView.updateListener.of((u) => u.docChanged && store(STORAGE_KEY, getSource())),
+    ],
+  }),
+});
+const getSource = () => editor.state.doc.toString();
+function setSource(text) {
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } });
+}
+// Hook for test/browser-test.mjs.
+window.app = { setSource };
+
 for (const name of Object.keys(examples)) exampleSel.add(new Option(name, name));
-editor.value = stored(STORAGE_KEY) ?? examples["Hello, stdin"];
 exampleSel.value = "";
 exampleSel.onchange = () => {
   if (!exampleSel.value) return;
-  editor.value = examples[exampleSel.value];
+  setSource(examples[exampleSel.value]);
   rawBox.checked = exampleSel.value.startsWith("Raw keys");
   tty.raw = rawBox.checked;
-  store(STORAGE_KEY, editor.value);
   exampleSel.value = "";
   editor.focus();
 };
-editor.addEventListener("input", () => store(STORAGE_KEY, editor.value));
-editor.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    run();
-  } else if (e.key === "Tab" && !e.shiftKey) {
-    e.preventDefault();
-    document.execCommand("insertText", false, "    ");
-  }
-});
 rawBox.onchange = () => {
   tty.raw = rawBox.checked;
   term.focus();
@@ -130,7 +146,7 @@ async function boot() {
 
 let current = null;
 
-// rustc from rust_wasm prints a "Linking using ..." debug line; hide it.
+// rustc from rust_wasm prints a "Linking using ..." debug line (to stdout); hide it.
 function filterLinkerNoise(sink) {
   let pending = "";
   const dec = new TextDecoder();
@@ -149,7 +165,7 @@ async function run() {
   const opt = optSel.value;
   const args = ["rustc", "/work/main.rs", "--edition", "2021", "--sysroot", "/sysroot",
     "--target", "wasm32-wasip1-threads", "--color", "always", "-C", `opt-level=${opt}`, "-o", "/work/main.wasm"];
-  kernel.vfs.writeFile("/work/main.rs", editor.value);
+  kernel.vfs.writeFile("/work/main.rs", getSource());
 
   term.reset();
   say(`${DIM}$ rustc main.rs -C opt-level=${opt}${RESET}\r\n`);
@@ -158,7 +174,7 @@ async function run() {
   const rustcProc = kernel.spawn(rustc, {
     args,
     env: { TMPDIR: "/tmp" },
-    stdout: (b) => term.write(b),
+    stdout: filterLinkerNoise((s) => term.write(s)),
     stderr: filterLinkerNoise((s) => term.write(s)),
   });
   current = rustcProc;
@@ -217,7 +233,7 @@ stopBtn.onclick = () => {
   stop();
 };
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && e.target !== editor) {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !editor.hasFocus) {
     e.preventDefault();
     run();
   }

@@ -74,6 +74,7 @@ try {
     await waitForTerm(/What's your name\?/);
     await type("Ferris\n");
     await waitForTerm(/Nice to meet you, Ferris!/);
+    if (/Linking using/.test(await termText())) throw new Error("linker debug output not filtered");
     await type("hello\n");
     await waitForTerm(/1: olleh/);
     await page.keyboard.press("Control+D");
@@ -89,14 +90,14 @@ try {
   });
 
   await check("compile error is reported", async () => {
-    await page.fill("#editor", 'fn main() { let x: u32 = "nope"; }');
+    await page.evaluate(() => app.setSource('fn main() { let x: u32 = "nope"; }'));
     await page.click("#run");
     await waitForTerm(/mismatched types/);
     await waitForTerm(/rustc failed/);
   });
 
   await check("panic exits non-zero", async () => {
-    await page.fill("#editor", 'fn main() { let v: Vec<i32> = vec![]; println!("{}", v[3]); }');
+    await page.evaluate(() => app.setSource('fn main() { let v: Vec<i32> = vec![]; println!("{}", v[3]); }'));
     await page.click("#run");
     await waitForTerm(/index out of bounds/);
     await waitForTerm(/process exited with code [1-9]/);

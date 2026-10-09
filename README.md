@@ -108,6 +108,7 @@ A program reading an empty stdin blocks, just as it would on a real tty.
 | `web/vfs.js` | In-memory filesystem and tar extraction |
 | `web/tty.js` | Line discipline between xterm.js and stdin |
 | `web/app.js`, `web/index.html` | UI: editor, toolbar, terminal |
+| `vendor-build/` | Builds `web/vendor/codemirror.js` (CodeMirror 6 + Rust mode): `npm ci && npm run build` |
 | `web/coi.js`, `web/coi-sw.js` | Service-worker fallback for cross-origin isolation |
 | `serve.py` | Static server that sends COOP/COEP headers |
 | `scripts/fetch-assets.sh` | Downloads and repacks rustc.wasm and the sysroot |
@@ -141,7 +142,9 @@ The browser test covers:
   [wasi-sdk 24](https://github.com/WebAssembly/wasi-sdk). The threads sysroot's
   `std` links against it, but the release doesn't ship it.
 - `web/vendor/` contains xterm.js 5.5.0 and its fit addon (MIT, see
-  `web/vendor/xterm-LICENSE`).
+  `web/vendor/xterm-LICENSE`), and a bundle of [CodeMirror 6](https://codemirror.net/)
+  with its Rust language mode and One Dark theme (MIT; licence comments are at
+  the end of `web/vendor/codemirror.js`).
 - Prior art: [bjorn3/browser_wasi_shim](https://github.com/bjorn3/browser_wasi_shim)
   and [oligamiq/rubrc](https://github.com/oligamiq/rubrc). rubrc is a much more
   complete environment, with cargo and rust-analyzer.
