@@ -6,6 +6,10 @@ then runs that program in the browser with an interactive terminal.
 
 Nothing runs server-side; the server only hosts static files.
 
+**Try it: <https://rntz-llm.github.io/rust-wasm-serve/>**
+
+To run it locally:
+
 ```
 ./scripts/fetch-assets.sh   # download rustc.wasm + sysroot into web/assets (~56 MB)
 python3 serve.py            # http://localhost:8000
